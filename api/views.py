@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.contrib.auth import login
 from django.contrib.auth.models import User
+from django.contrib.auth import logout
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -8,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import IsAuthenticated
 
-from .serializers import UserSerializer, RegisterSerializer , ChangePasswordSerializer
+from .serializers import UserSerializer, RegisterSerializer , LoginSerializer , ChangePasswordSerializer
 
 
 # Create your views here.
@@ -20,13 +21,40 @@ class RegisterAPI(GenericAPIView):
     def post(self , request):
         serializer = self.get_serializer(data = request.data)
         if serializer.is_valid():
-            user = serializer.save(request.data)
+            user = serializer.save()
+            login(request , user)
             return Response({"user": UserSerializer(user, context=self.get_serializer_context()).data}, status = status.HTTP_201_CREATED)
         return Response(serializer.errors , status = status.HTTP_400_BAD_REQUEST)
 
+            
+# Login API
+class Login(GenericAPIView):
+    serializer_class = LoginSerializer
+    
+    def get_object(self , username):
+        try:
+            return User.objects.get(username = username)
+        except User.DoesNotExist :
+            return None
+    
+    def post(self , request):
+        user = self.get_object(request.data.get("username"))
+        if not user :
+            return Response({'Not Found' : 'User does not exist'} , status = status.HTTP_400_BAD_REQUEST)
+        login(request , user)
+        return Response({'Logged in' : 'User Logged in Successfully. '})
 
+# Logout API
+class Logout(GenericAPIView):
+    serializer_class = LoginSerializer       
+    
+    def get(self , request):
+        logout(request)
+        return Response({'Logging out' : 'User Logged out Successfully. '})
+
+# Reset Password API
 class ResetPasswordAPI(GenericAPIView):
-    serializer_class = ChangePasswordSerializer
+    serializer_class = LoginSerializer
     permission_classes = [IsAuthenticated]
     
     def get_object(self , username):
@@ -35,7 +63,7 @@ class ResetPasswordAPI(GenericAPIView):
         except User.DoesNotExist :
             return None
     
-    def patch(self , request):
+    def put(self , request):
         if request.user.username == request.data.get("username") :
             user = self.get_object(request.data.get("username"))
             if not user :
@@ -47,12 +75,38 @@ class ResetPasswordAPI(GenericAPIView):
             return Response(serializer.errors , status = status.HTTP_400_BAD_REQUEST)
         else:
             return Response({"Invalid Username" : "For changing password logged in username should be use."})
-            
-        
-        
 
+
+class ChangePasswordAPI(GenericAPIView):
+    serializer_class = ChangePasswordSerializer
+    permission_classes = [IsAuthenticated]
     
+    def get_object(self , username ):
+        try:
+            return User.objects.get(username = username)
+        except User.DoesNotExist :
+            return None
     
+    def put(self , request):
+        if request.user.username == request.data.get("username") :
+            user = self.get_object(request.data.get("username"))
+            if not user :
+                return Response({'Not Found' : 'User does not exist'} , status = status.HTTP_400_BAD_REQUEST)
+            user.set_password(request.data.get("new_password"))
+            serializer = self.get_serializer(user , data = request.data , partial = True)
+            if serializer.is_valid():
+                user = serializer.save()
+                return Response({"user": UserSerializer(user).data})
+            return Response(serializer.errors , status = status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({"Invalid Username" : "For changing password logged in username should be use."})
+
+
+
+
+
+
+
 """
 @api_view(['POST'])
 def registration_view(request):
@@ -80,6 +134,5 @@ def registration_view(request):
 "email":"max@gmail.com",
 "username":"max",
 "password":"abcd@1234",
-"password2":"abcd@1234"
 }    
 """

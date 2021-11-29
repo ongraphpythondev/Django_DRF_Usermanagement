@@ -1,7 +1,5 @@
 from rest_framework import serializers
 
-from .models import UserData
-
 from django.contrib.auth.models import User
 
 # User Serializer
@@ -12,45 +10,34 @@ class UserSerializer(serializers.ModelSerializer):
 
 # Register Serializer
 class RegisterSerializer(serializers.ModelSerializer):
+    confirm_password = serializers.CharField(
+            max_length=100,min_length=6,write_only=True)
     class Meta:
         model = User
-        fields = ['id' , 'username' , 'email' , 'password']
+        fields = ['username','first_name','last_name','email','password','confirm_password']
     
-    def save(self , validated_data):
-        user = User.objects.create_user(validated_data['username'], validated_data['email'], validated_data['password'])
-        
+    def create(self , validated_data):
+        if validated_data['password']!=validated_data['confirm_password']:
+            raise serializers.ValidationError({"password":"Password fields didn't match."})
+        user = User.objects.create(
+            username=validated_data['username'],
+            email=validated_data['email'],
+            first_name=validated_data['first_name'],
+            last_name=validated_data['last_name']
+        )
+
+        user.set_password(validated_data['password'])
+        user.save()
         return user
 
-class ChangePasswordSerializer(serializers.ModelSerializer):
+class LoginSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['username' , 'password']
 
-"""
-class UserDataSerializer(serializers.ModelSerializer):
-    
-    password2 = serializers.CharField(style = {'input_type' : 'password'} , write_only = True)
-
+class ChangePasswordSerializer(serializers.ModelSerializer):
+    new_password = serializers.CharField(
+            max_length=100,min_length=6,write_only=True)
     class Meta:
-        model = UserData
-        fields = ['email' , 'username' ,  'password' , 'password2']
-        extra_kwargs = {
-        'password' : {'write_only' : True}
-        }
-    
-    def save(self):
-        data = UserData(
-            email = self.validated_data['email'],
-            username = self.validated_data['username'],
-            password = self.validated_data['password']
-        )
-        password = self.validated_data['password'],
-        password2 = self.validated_data['password2'],
-        
-        if password != password2:
-            raise serializers.validationError({'password' : 'Passwords must match.'})
-        data.save()
-        return data
-"""
-
-
+        model = User
+        fields = ['username' , 'password' , 'new_password']
