@@ -3,6 +3,7 @@ from django.contrib.auth import login
 from django.contrib.auth.models import User
 from django.contrib.auth import logout
 
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
 from rest_framework.response import Response
 # from rest_framework.decorators import api_view
@@ -18,6 +19,7 @@ from .serializers import UserSerializer, RegisterSerializer , LoginSerializer , 
 class RegisterAPI(GenericAPIView):
     serializer_class = RegisterSerializer
     
+    @csrf_exempt    
     def post(self , request):
         serializer = self.get_serializer(data = request.data)
         if serializer.is_valid():
@@ -37,6 +39,7 @@ class Login(GenericAPIView):
         except User.DoesNotExist :
             return None
     
+    @csrf_exempt    
     def post(self , request):
         user = self.get_object(request.data.get("username"))
         if not user :
@@ -62,7 +65,8 @@ class ResetPasswordAPI(GenericAPIView):
             return User.objects.get(username = username)
         except User.DoesNotExist :
             return None
-    
+        
+    @csrf_exempt
     def put(self , request):
         if request.user.username == request.data.get("username") :
             user = self.get_object(request.data.get("username"))
@@ -87,6 +91,7 @@ class ChangePasswordAPI(GenericAPIView):
         except User.DoesNotExist :
             return None
     
+    @csrf_exempt    
     def put(self , request):
         if request.user.username == request.data.get("username") :
             user = self.get_object(request.data.get("username"))
