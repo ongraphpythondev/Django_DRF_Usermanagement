@@ -38,15 +38,15 @@ class Login(GenericAPIView):
     serializer_class = LoginSerializer
     authentication_classes = [SessionAuthentication]
     
-    def get_object(self , username):
+    def get_object(self , username , password):
         try:
-            return User.objects.get(username = username)
+            return User.objects.get(username = username , password = password)
         except User.DoesNotExist :
             return None
     
     @csrf_exempt    
     def post(self , request):
-        user = self.get_object(request.data.get("username"))
+        user = self.get_object(request.data.get("username") , request.data.get("password"))
         if not user :
             return Response({'Not Found' : 'User does not exist'} , status = status.HTTP_400_BAD_REQUEST)
         login(request , user)
