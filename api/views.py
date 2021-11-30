@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.contrib.auth import login
 from django.contrib.auth.models import User
 from django.contrib.auth import logout
-from django.contrib.auth.hashers import make_password
+from django.contrib.auth.hashers import make_password , check_password
 
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
@@ -10,7 +10,7 @@ from rest_framework.response import Response
 # from rest_framework.decorators import api_view
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.authentication import TokenAuthentication , SessionAuthentication
+from rest_framework.authentication import TokenAuthentication , SessionAuthentication , BasicAuthentication
 
 from .serializers import UserSerializer, RegisterSerializer , LoginSerializer , ChangePasswordSerializer
 
@@ -38,19 +38,25 @@ class Login(GenericAPIView):
     serializer_class = LoginSerializer
     authentication_classes = [SessionAuthentication]
     
-    def get_object(self , username , password):
+    def get_object(self , username):
         try:
-            return User.objects.get(username = username , password = password)
+            return User.objects.get(username = username)
         except User.DoesNotExist :
             return None
     
     @csrf_exempt    
     def post(self , request):
-        user = self.get_object(request.data.get("username") , request.data.get("password"))
-        if not user :
+        user = self.get_object(request.data.get("username"))
+        flag = check_password(request.data.get("password") , user.password)
+        if not user:
             return Response({'Not Found' : 'User does not exist'} , status = status.HTTP_400_BAD_REQUEST)
-        login(request , user)
-        return Response({'Logged in' : 'User Logged in Successfully. '})
+        # elif user.password != request.data.get("password") :
+        #     return Response({'Wrong passwrd' : 'User password does not matched'} , status = status.HTTP_400_BAD_REQUEST)
+        elif flag : 
+            login(request , user)
+            return Response({'Logged in' : 'User Logged in Successfully. '})
+        else :
+            return Response({'Wrong passwrd' : 'User password does not matched'} , status = status.HTTP_400_BAD_REQUEST)
 
 # Logout API
 class Logout(GenericAPIView):
@@ -64,8 +70,8 @@ class Logout(GenericAPIView):
 # Reset Password API
 class ResetPasswordAPI(GenericAPIView):
     serializer_class = LoginSerializer
-    permission_classes = [IsAuthenticated]
-    authentication_classes = [SessionAuthentication]
+    # permission_classes = [IsAuthenticated]
+    authentication_classes = [BasicAuthentication]
     # authentication_classes = [TokenAuthentication]
     
     def get_object(self , username):
@@ -75,18 +81,15 @@ class ResetPasswordAPI(GenericAPIView):
             return None
     @csrf_exempt        
     def post(self , request):
-        if request.user.username == request.data.get("username") :
-            user = self.get_object(request.data.get("username"))
-            if not user :
-                return Response({'Not Found' : 'User does not exist'} , status = status.HTTP_400_BAD_REQUEST)
-            serializer = self.get_serializer(user , data = request.data , partial = True)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data)
-            return Response(serializer.errors , status = status.HTTP_400_BAD_REQUEST)
-        else:
-            return Response({"Invalid Username" : "For changing password logged in username should be use."})
-
+        user = self.get_object(request.data.get("username"))
+        if not user :
+            return Response({'Not Found' : 'User does not exist'} , status = status.HTTP_400_BAD_REQUEST)
+        serializer = self.get_serializer(user , data = request.data , partial = True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors , status = status.HTTP_400_BAD_REQUEST)
+    
 
 class ChangePasswordAPI(GenericAPIView):
     serializer_class = ChangePasswordSerializer
