@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.contrib.auth import login
 from django.contrib.auth.models import User
 from django.contrib.auth import logout
+from django.contrib.auth.hashers import make_password
 
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
@@ -9,6 +10,7 @@ from rest_framework.response import Response
 # from rest_framework.decorators import api_view
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import TokenAuthentication , SessionAuthentication
 
 from .serializers import UserSerializer, RegisterSerializer , LoginSerializer , ChangePasswordSerializer
 
@@ -18,6 +20,7 @@ from .serializers import UserSerializer, RegisterSerializer , LoginSerializer , 
 # Register API
 class RegisterAPI(GenericAPIView):
     serializer_class = RegisterSerializer
+    authentication_classes = [SessionAuthentication]
     
     @csrf_exempt    
     def post(self , request):
@@ -32,6 +35,7 @@ class RegisterAPI(GenericAPIView):
 # Login API
 class Login(GenericAPIView):
     serializer_class = LoginSerializer
+    authentication_classes = [SessionAuthentication]
     
     def get_object(self , username):
         try:
@@ -50,6 +54,7 @@ class Login(GenericAPIView):
 # Logout API
 class Logout(GenericAPIView):
     serializer_class = LoginSerializer       
+    authentication_classes = [SessionAuthentication]
     
     def get(self , request):
         logout(request)
@@ -59,14 +64,14 @@ class Logout(GenericAPIView):
 class ResetPasswordAPI(GenericAPIView):
     serializer_class = LoginSerializer
     permission_classes = [IsAuthenticated]
+    authentication_classes = [SessionAuthentication]
     
     def get_object(self , username):
         try:
             return User.objects.get(username = username)
         except User.DoesNotExist :
             return None
-        
-    @csrf_exempt
+    @csrf_exempt        
     def put(self , request):
         if request.user.username == request.data.get("username") :
             user = self.get_object(request.data.get("username"))
@@ -84,6 +89,7 @@ class ResetPasswordAPI(GenericAPIView):
 class ChangePasswordAPI(GenericAPIView):
     serializer_class = ChangePasswordSerializer
     permission_classes = [IsAuthenticated]
+    authentication_classes = [SessionAuthentication]
     
     def get_object(self , username ):
         try:
@@ -97,7 +103,7 @@ class ChangePasswordAPI(GenericAPIView):
             user = self.get_object(request.data.get("username"))
             if not user :
                 return Response({'Not Found' : 'User does not exist'} , status = status.HTTP_400_BAD_REQUEST)
-            user.set_password(request.data.get("new_password"))
+            user.set_password(make_password(request.data.get("new_password")))
             serializer = self.get_serializer(user , data = request.data , partial = True)
             if serializer.is_valid():
                 user = serializer.save()
@@ -111,33 +117,3 @@ class ChangePasswordAPI(GenericAPIView):
 
 
 
-
-"""
-@api_view(['POST'])
-def registration_view(request):
-    
-    if request.method == 'POST':
-        serializer = UserDataSerializer(data = request.data)
-        data = {}
-        if serializer.is_valid():
-            u = serializer.save()
-            data['response'] = "successfully resgistered a new user."
-            data['email'] = u.email
-            data['username'] = u.username
-            username = request.data.get("username")
-            password = request.data.get("password")
-            email = request.data.get("email")
-            user = User.objects.create_user(username, email=email, password=password)
-            user.save()
-            login(request , user)        
-        else:
-            data = serilizer.errors
-        
-        return Response(data)
-       
-{
-"email":"max@gmail.com",
-"username":"max",
-"password":"abcd@1234",
-}    
-"""
