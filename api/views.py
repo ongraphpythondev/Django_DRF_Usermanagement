@@ -21,6 +21,7 @@ from .serializers import UserSerializer, RegisterSerializer , LoginSerializer , 
 class RegisterAPI(GenericAPIView):
     serializer_class = RegisterSerializer
     authentication_classes = [SessionAuthentication]
+    # authentication_classes = [TokenAuthentication]
     
     @csrf_exempt    
     def post(self , request):
@@ -65,6 +66,7 @@ class ResetPasswordAPI(GenericAPIView):
     serializer_class = LoginSerializer
     permission_classes = [IsAuthenticated]
     authentication_classes = [SessionAuthentication]
+    # authentication_classes = [TokenAuthentication]
     
     def get_object(self , username):
         try:
@@ -72,7 +74,7 @@ class ResetPasswordAPI(GenericAPIView):
         except User.DoesNotExist :
             return None
     @csrf_exempt        
-    def put(self , request):
+    def post(self , request):
         if request.user.username == request.data.get("username") :
             user = self.get_object(request.data.get("username"))
             if not user :
@@ -90,6 +92,7 @@ class ChangePasswordAPI(GenericAPIView):
     serializer_class = ChangePasswordSerializer
     permission_classes = [IsAuthenticated]
     authentication_classes = [SessionAuthentication]
+    # authentication_classes = [TokenAuthentication]    
     
     def get_object(self , username ):
         try:
@@ -98,7 +101,7 @@ class ChangePasswordAPI(GenericAPIView):
             return None
     
     @csrf_exempt    
-    def put(self , request):
+    def post(self , request):
         if request.user.username == request.data.get("username") :
             user = self.get_object(request.data.get("username"))
             if not user :
