@@ -50,8 +50,6 @@ class Login(GenericAPIView):
         flag = check_password(request.data.get("password") , user.password)
         if not user:
             return Response({'Not Found' : 'User does not exist'} , status = status.HTTP_400_BAD_REQUEST)
-        # elif user.password != request.data.get("password") :
-        #     return Response({'Wrong passwrd' : 'User password does not matched'} , status = status.HTTP_400_BAD_REQUEST)
         elif flag : 
             login(request , user)
             return Response({'Logged in' : 'User Logged in Successfully. '})
@@ -71,7 +69,7 @@ class Logout(GenericAPIView):
 class ResetPasswordAPI(GenericAPIView):
     serializer_class = LoginSerializer
     # permission_classes = [IsAuthenticated]
-    authentication_classes = [BasicAuthentication]
+    authentication_classes = [SessionAuthentication]
     # authentication_classes = [TokenAuthentication]
     
     def get_object(self , username):
@@ -79,12 +77,16 @@ class ResetPasswordAPI(GenericAPIView):
             return User.objects.get(username = username)
         except User.DoesNotExist :
             return None
+        
     @csrf_exempt        
     def post(self , request):
         user = self.get_object(request.data.get("username"))
         if not user :
             return Response({'Not Found' : 'User does not exist'} , status = status.HTTP_400_BAD_REQUEST)
-        serializer = self.get_serializer(user , data = request.data , partial = True)
+        data = {
+            "password" : make_password(request.data.get("password"))
+            }
+        serializer = self.get_serializer(user , data = data , partial = True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -107,19 +109,23 @@ class ChangePasswordAPI(GenericAPIView):
     def post(self , request):
         if request.user.username == request.data.get("username") :
             user = self.get_object(request.data.get("username"))
-            if not user :
+            flag = check_password(request.data.get("password") , user.password)
+            if user is None :
                 return Response({'Not Found' : 'User does not exist'} , status = status.HTTP_400_BAD_REQUEST)
-            user.set_password(make_password(request.data.get("new_password")))
-            serializer = self.get_serializer(user , data = request.data , partial = True)
-            if serializer.is_valid():
-                user = serializer.save()
-                return Response({"user": UserSerializer(user).data})
-            return Response(serializer.errors , status = status.HTTP_400_BAD_REQUEST)
+            elif flag : 
+                data = {
+                    "password" : make_password(request.data.get("new_password"))
+                }
+                serializer = self.get_serializer(user , data = data , partial = True)
+                if serializer.is_valid():
+                    user = serializer.save()
+                    return Response({"user": UserSerializer(user).data})
+                return Response(serializer.errors , status = status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({"error" : "old password not match"} , status=status.HTTP_400_BAD_REQUEST)
+
         else:
             return Response({"Invalid Username" : "For changing password logged in username should be use."})
-
-
-
 
 
 
