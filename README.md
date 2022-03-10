@@ -1,9 +1,7 @@
 # DRF_poc 
-```
-This poc contains Django Usermanagement functionality in API format.
-so ,just by going through API links and adding data in those APIs , 
-we can do login, logout , change password .
-```
+- This poc contains Django Usermanagement functionality in API format.
+- just by going through API links and adding data in those APIs , we can do login, logout , change password .
+
 
 ## Prerequisites:
 
