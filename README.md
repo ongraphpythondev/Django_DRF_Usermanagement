@@ -36,7 +36,7 @@ virtualenv venv
 ```
 virtualenv venv -p python3 #if using linux(for python 3 and above)
 ```
-### NOTE : 'venv' is the name of your isolated virtual environment for python.
+**NOTE** : 'venv' is the name of your isolated virtual environment for python.
 ```
 venv\Scripts\activate # for windows
 ```
