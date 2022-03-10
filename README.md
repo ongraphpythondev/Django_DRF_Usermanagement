@@ -23,11 +23,12 @@ pip3 install virtualenv #if using linux(for python 3 and above)
 
 ## Installation and Running :
 
-- bash
+**bash**
+- This will clone whole project in a specified folder
 ```
 git clone https://github.com/ongraphpythondev/Django_DRF_Usermanagement.git
 ```
-- This will clone whole project
+
 
 ```
 virtualenv venv 
